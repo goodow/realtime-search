@@ -1,0 +1,91 @@
+# address: realtime.search
+
+# Define anchors to be referenced below
+---
+key: &key
+  _index: twitter
+  _type: tweet
+  _id: "1"
+keyAndVersion: &keyAndVersion
+  <<: *key
+  _version: 1
+searchResult: &searchResult
+  <<: *key
+  _score: 0.19178301
+  _source: {}
+...
+
+# http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/docs-index_.html
+---
+action: index
+<<: *key
+version: 1
+version_type: external
+_source:
+  user: larry
+  message: hello
+--- # reply
+status: ok
+<<: *keyAndVersion
+created: true
+
+# http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/docs-get.html
+---
+action: get
+<<: *key
+--- # reply
+status: ok
+<<: *keyAndVersion
+found: true
+_source:
+  user: larry
+  message: hello
+
+# http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-request-body.html
+---
+action: search
+_index: twitter # optional
+_indices: [twitter] # optional
+_type: tweet # optional
+_types: [tweet] # optional
+query: {}
+filter: {}
+facets: {}
+search_type: query_then_fetch # optional
+scroll: 5m # optional
+--- # reply
+status: ok
+took: 2
+timed_out: false
+_shards:
+  total: 5
+  successful: 5
+  failed: 0
+hits:
+  total: 2
+  max_score: 0.19178301
+  hits:
+    - *searchResult
+    - *searchResult
+
+# http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-request-scroll.html
+---
+action: scroll
+_scroll_id: cXVlcnlUaGV
+scroll: 5m
+--- # reply
+status: ok
+_scroll_id: m9kSGc7Mzk
+took: 2
+timed_out: false
+_shards:
+  total: 5
+  successful: 5
+  failed: 0
+hits:
+  total: 3
+  max_score: 1.0
+  hits:
+    - *searchResult
+    - *searchResult
+    - *searchResult

@@ -1,0 +1,11 @@
+language: java
+before_install: wget -P target/travis https://raw.githubusercontent.com/goodow/maven/master/settings.xml
+
+after_success: '[ ${TRAVIS_PULL_REQUEST} = ''false'' ]
+  && mvn deploy -Psonatype-oss-release -Dgpg.skip=true --settings target/travis/settings.xml
+  || mvn verify --settings target/travis/settings.xml'
+
+env:
+  global:
+    - secure: XxFb3DihwYkViNXqjReuLbQMh0w9C0X5BI9YaP30spoJqAVqZi/bZ+RSJ9zDie6n2mWgUxl60gqhfA1tVaY7M65v4TUH+ULvNiVB5eIL2KVqetLgnEDTkZRA/o8oH5XL4MmOCydJepy+RYlrnbvMs3TrTVwwu6U6pcbfxeGvRTs=
+    - secure: cT+ZHnzs/5WglnXGCaU0gpJiDaIElQ2WNTnVSvVFr/zsaAA3MRscSiEOJSfycW4xKc5Vi4rH6tqUKSlnG+qlFmFhBW7QZZSpHEpZVV2r23c66C5kuFA2phffDYPbONwp5V8J+jbmnYFAk3aW8FFi2hDB2TGHSDNu2ez5KVsWb8A=
