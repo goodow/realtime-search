@@ -48,11 +48,17 @@ _index: twitter # optional
 _indices: [twitter] # optional
 _type: tweet # optional
 _types: [tweet] # optional
+from: 0
+size: 10
 query: {}
 filter: {}
 facets: {}
 search_type: query_then_fetch # optional
 scroll: 5m # optional
+sort: # http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-request-sort.html
+  - user
+  - {post_date: desc}
+  - _score
 --- # reply
 status: ok
 took: 2

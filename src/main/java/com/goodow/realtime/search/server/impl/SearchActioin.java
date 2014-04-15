@@ -24,14 +24,12 @@ import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.platform.Container;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
 
 public class SearchActioin implements Handler<Message<JsonObject>> {
-  private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
   private final Logger logger;
   @Inject private Client client;
 
@@ -43,66 +41,56 @@ public class SearchActioin implements Handler<Message<JsonObject>> {
   @Override
   public void handle(final Message<JsonObject> message) {
     JsonObject body = message.body();
+    body.removeField("action");
     // Get indices to be searched
     String index = body.getString(ElasticSearchHandler.CONST_INDEX);
     JsonArray indices = body.getArray("_indices");
     List<String> list = new ArrayList<>();
     if (index != null) {
       list.add(index);
+      body.removeField(ElasticSearchHandler.CONST_INDEX);
     }
     if (indices != null) {
       for (Object idx : indices) {
         list.add((String) idx);
       }
+      body.removeField("_indices");
     }
-
     SearchRequestBuilder builder = client.prepareSearch(list.toArray(new String[list.size()]));
+
     // Get types to be searched
     String type = body.getString(ElasticSearchHandler.CONST_TYPE);
     JsonArray types = body.getArray("_types");
     list.clear();
     if (type != null) {
       list.add(type);
+      body.removeField(ElasticSearchHandler.CONST_TYPE);
     }
     if (types != null) {
       for (Object tp : types) {
         list.add((String) tp);
       }
+      body.removeField("_types");
     }
     if (!list.isEmpty()) {
       builder.setTypes(list.toArray(new String[list.size()]));
-    }
-
-    // Set the query
-    JsonObject query = body.getObject("query");
-    if (query != null) {
-      builder.setQuery(query.encode());
-    }
-
-    // Set the filter
-    JsonObject filter = body.getObject("filter");
-    if (filter != null) {
-      builder.setPostFilter(filter.encode());
-    }
-
-    // Set facets
-    JsonObject facets = body.getObject("facets");
-    if (facets != null) {
-      builder.setFacets(facets.encode().getBytes(CHARSET_UTF8));
     }
 
     // Set search type
     String searchType = body.getString("search_type");
     if (searchType != null) {
       builder.setSearchType(searchType);
+      body.removeField("search_type");
     }
 
     // Set scroll keep alive time
     String scroll = body.getString("scroll");
     if (scroll != null) {
       builder.setScroll(scroll);
+      body.removeField("scroll");
     }
 
+    builder.setExtraSource(body.encode());
     builder.execute(new ActionListener<SearchResponse>() {
       @Override
       public void onFailure(Throwable e) {
