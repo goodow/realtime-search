@@ -43,12 +43,12 @@ public class SearchActioin implements Handler<Message<JsonObject>> {
     JsonObject body = message.body();
     body.removeField("action");
     // Get indices to be searched
-    String index = body.getString(ElasticSearchHandler.CONST_INDEX);
+    String index = body.getString(ElasticSearchHandler.INDEX);
     JsonArray indices = body.getArray("_indices");
     List<String> list = new ArrayList<>();
     if (index != null) {
       list.add(index);
-      body.removeField(ElasticSearchHandler.CONST_INDEX);
+      body.removeField(ElasticSearchHandler.INDEX);
     }
     if (indices != null) {
       for (Object idx : indices) {
@@ -59,12 +59,12 @@ public class SearchActioin implements Handler<Message<JsonObject>> {
     SearchRequestBuilder builder = client.prepareSearch(list.toArray(new String[list.size()]));
 
     // Get types to be searched
-    String type = body.getString(ElasticSearchHandler.CONST_TYPE);
+    String type = body.getString(ElasticSearchHandler.TYPE);
     JsonArray types = body.getArray("_types");
     list.clear();
     if (type != null) {
       list.add(type);
-      body.removeField(ElasticSearchHandler.CONST_TYPE);
+      body.removeField(ElasticSearchHandler.TYPE);
     }
     if (types != null) {
       for (Object tp : types) {
@@ -94,8 +94,7 @@ public class SearchActioin implements Handler<Message<JsonObject>> {
     builder.execute(new ActionListener<SearchResponse>() {
       @Override
       public void onFailure(Throwable e) {
-        ElasticSearchHandler.sendError(logger, message, "Search error: " + e.getMessage(),
-            new RuntimeException(e));
+        ElasticSearchHandler.replyFail(logger, message, "Search error: " + e.getMessage(), e);
       }
 
       @Override

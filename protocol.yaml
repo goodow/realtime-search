@@ -21,11 +21,11 @@ action: index
 <<: *key
 version: 1
 version_type: external
+op_type: create
 _source:
   user: larry
   message: hello
 --- # reply
-status: ok
 <<: *keyAndVersion
 created: true
 
@@ -34,7 +34,6 @@ created: true
 action: get
 <<: *key
 --- # reply
-status: ok
 <<: *keyAndVersion
 found: true
 _source:
@@ -60,7 +59,6 @@ sort: # http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/se
   - {post_date: desc}
   - _score
 --- # reply
-status: ok
 took: 2
 timed_out: false
 _shards:
@@ -80,7 +78,6 @@ action: scroll
 _scroll_id: cXVlcnlUaGV
 scroll: 5m
 --- # reply
-status: ok
 _scroll_id: m9kSGc7Mzk
 took: 2
 timed_out: false

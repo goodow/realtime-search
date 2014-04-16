@@ -34,24 +34,15 @@ import java.io.IOException;
 import javax.inject.Inject;
 
 public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
-  public static final String CONST_INDEX = "_index";
-  public static final String CONST_TYPE = "_type";
-  public static final String CONST_ID = "_id";
-  public static final String CONST_VERSION = "_version";
-  public static final String CONST_SOURCE = "_source";
+  public static final String INDEX = "_index";
+  public static final String TYPE = "_type";
+  public static final String ID = "_id";
+  public static final String VERSION = "_version";
+  public static final String SOURCE = "_source";
 
-  public static void sendError(Logger logger, Message<JsonObject> message, String error, Exception e) {
+  public static void replyFail(Logger logger, Message<JsonObject> message, String error, Throwable e) {
     logger.error(error, e);
-    JsonObject json = new JsonObject().putString("status", "error").putString("message", error);
-    message.reply(json);
-  }
-
-  public static void sendOK(Message<JsonObject> message, JsonObject json) {
-    if (json == null) {
-      json = new JsonObject();
-    }
-    json.putString("status", "ok");
-    message.reply(json);
+    message.fail(-1, error);
   }
 
   static void handleActionResponse(Logger logger, ToXContent toXContent, Message<JsonObject> message) {
@@ -62,9 +53,9 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
       builder.endObject();
 
       JsonObject response = new JsonObject(builder.string());
-      sendOK(message, response);
+      message.reply(response);
     } catch (IOException e) {
-      sendError(logger, message, "Error reading search response: " + e.getMessage(), e);
+      replyFail(logger, message, "Error reading search response: " + e.getMessage(), e);
     }
   }
 
@@ -82,7 +73,7 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
     try {
       String action = message.body().getString("action");
       if (action == null) {
-        sendError(logger, message, "action must be specified", null);
+        replyFail(logger, message, "action must be specified", null);
         return;
       }
       switch (action) {
@@ -99,27 +90,27 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
           doScroll(message);
           break;
         default:
-          sendError(logger, message, "Unrecognized action " + action, null);
+          replyFail(logger, message, "Unrecognized action " + action, null);
           break;
       }
     } catch (Exception e) {
-      sendError(logger, message, "Unhandled exception!", e);
+      replyFail(logger, message, "Unhandled exception!", e);
     }
   }
 
   String getRequiredIndex(JsonObject json, Message<JsonObject> message) {
-    String index = json.getString(CONST_INDEX);
+    String index = json.getString(INDEX);
     if (index == null || index.isEmpty()) {
-      sendError(logger, message, CONST_INDEX + " is required", null);
+      replyFail(logger, message, INDEX + " is required", null);
       return null;
     }
     return index;
   }
 
   String getRequiredType(JsonObject json, Message<JsonObject> message) {
-    String type = json.getString(CONST_TYPE);
+    String type = json.getString(TYPE);
     if (type == null || type.isEmpty()) {
-      sendError(logger, message, CONST_TYPE + " is required", null);
+      replyFail(logger, message, TYPE + " is required", null);
       return null;
     }
     return type;
@@ -135,15 +126,15 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
     if (type == null) {
       return;
     }
-    String id = body.getString(CONST_ID);
+    String id = body.getString(ID);
     if (id == null) {
-      sendError(logger, message, CONST_ID + " is required", null);
+      replyFail(logger, message, ID + " is required", null);
       return;
     }
     client.prepareGet(index, type, id).execute(new ActionListener<GetResponse>() {
       @Override
       public void onFailure(Throwable e) {
-        sendError(logger, message, "Get error: " + e.getMessage(), new RuntimeException(e));
+        replyFail(logger, message, "Get error: " + e.getMessage(), e);
       }
 
       @Override
@@ -151,10 +142,10 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
         JsonObject source =
             (getFields.isExists() ? new JsonObject(getFields.getSourceAsString()) : null);
         JsonObject reply =
-            new JsonObject().putString(CONST_INDEX, getFields.getIndex()).putString(CONST_TYPE,
-                getFields.getType()).putString(CONST_ID, getFields.getId()).putNumber(
-                CONST_VERSION, getFields.getVersion()).putObject(CONST_SOURCE, source);
-        sendOK(message, reply);
+            new JsonObject().putString(INDEX, getFields.getIndex()).putString(TYPE,
+                getFields.getType()).putString(ID, getFields.getId()).putNumber(VERSION,
+                getFields.getVersion()).putObject(SOURCE, source);
+        message.reply(reply);
       }
     });
   }
@@ -169,14 +160,14 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
     if (type == null) {
       return;
     }
-    JsonObject source = body.getObject(CONST_SOURCE);
+    JsonObject source = body.getObject(SOURCE);
     if (source == null) {
-      sendError(logger, message, CONST_SOURCE + " is required", null);
+      replyFail(logger, message, SOURCE + " is required", null);
       return;
     }
 
     IndexRequestBuilder builder =
-        client.prepareIndex(index, type, body.getString(CONST_ID)).setSource(source.encode());
+        client.prepareIndex(index, type, body.getString(ID)).setSource(source.encode());
 
     if (body.containsField("version")) {
       builder.setVersion(body.getLong("version"));
@@ -184,20 +175,23 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
     if (body.containsField("version_type")) {
       builder.setVersionType(VersionType.fromString(body.getString("version_type")));
     }
+    if (body.containsField("op_type")) {
+      builder.setOpType(body.getString("op_type"));
+    }
 
     builder.execute(new ActionListener<IndexResponse>() {
       @Override
       public void onFailure(Throwable e) {
-        sendError(logger, message, "Index error: " + e.getMessage(), new RuntimeException(e));
+        replyFail(logger, message, "Index error: " + e.getMessage(), e);
       }
 
       @Override
       public void onResponse(IndexResponse indexResponse) {
         JsonObject reply =
-            new JsonObject().putString(CONST_INDEX, indexResponse.getIndex()).putString(CONST_TYPE,
-                indexResponse.getType()).putString(CONST_ID, indexResponse.getId()).putNumber(
-                CONST_VERSION, indexResponse.getVersion());
-        sendOK(message, reply);
+            new JsonObject().putString(INDEX, indexResponse.getIndex()).putString(TYPE,
+                indexResponse.getType()).putString(ID, indexResponse.getId()).putNumber(VERSION,
+                indexResponse.getVersion());
+        message.reply(reply);
       }
     });
   }
@@ -206,12 +200,12 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
     JsonObject body = message.body();
     String scrollId = body.getString("_scroll_id");
     if (scrollId == null) {
-      sendError(logger, message, "_scroll_id is required", null);
+      replyFail(logger, message, "_scroll_id is required", null);
       return;
     }
     String scroll = body.getString("scroll");
     if (scroll == null) {
-      sendError(logger, message, "scroll is required", null);
+      replyFail(logger, message, "scroll is required", null);
       return;
     }
 
@@ -219,7 +213,7 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
         new ActionListener<SearchResponse>() {
           @Override
           public void onFailure(Throwable e) {
-            sendError(logger, message, "Scroll error: " + e.getMessage(), new RuntimeException(e));
+            replyFail(logger, message, "Scroll error: " + e.getMessage(), e);
           }
 
           @Override
