@@ -39,19 +39,24 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
   public static final String ID = "_id";
   public static final String VERSION = "_version";
   public static final String SOURCE = "_source";
+  public static final String PUT_INDEX_TEMPLATE = "putIndexTemplate";
 
   public static void replyFail(Logger logger, Message<JsonObject> message, String error, Throwable e) {
     logger.error(error, e);
     message.fail(-1, error);
   }
 
-  static void handleActionResponse(Logger logger, ToXContent toXContent, Message<JsonObject> message) {
+  static void parseXContent(Logger logger, ToXContent toXContent, Message<JsonObject> message,
+      boolean needWrap) {
     try {
       XContentBuilder builder = XContentFactory.jsonBuilder();
-      builder.startObject();
+      if (needWrap) {
+        builder.startObject();
+      }
       toXContent.toXContent(builder, SearchResponse.EMPTY_PARAMS);
-      builder.endObject();
-
+      if (needWrap) {
+        builder.endObject();
+      }
       JsonObject response = new JsonObject(builder.string());
       message.reply(response);
     } catch (IOException e) {
@@ -61,6 +66,7 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
 
   @Inject private Client client;
   @Inject private SearchActioin search;
+  @Inject private AdminActioin admin;
   private final Logger logger;
 
   @Inject
@@ -88,6 +94,9 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
           break;
         case "scroll":
           doScroll(message);
+          break;
+        case PUT_INDEX_TEMPLATE:
+          admin.handle(message);
           break;
         default:
           replyFail(logger, message, "Unrecognized action " + action, null);
@@ -138,14 +147,8 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
       }
 
       @Override
-      public void onResponse(GetResponse getFields) {
-        JsonObject source =
-            (getFields.isExists() ? new JsonObject(getFields.getSourceAsString()) : null);
-        JsonObject reply =
-            new JsonObject().putString(INDEX, getFields.getIndex()).putString(TYPE,
-                getFields.getType()).putString(ID, getFields.getId()).putNumber(VERSION,
-                getFields.getVersion()).putObject(SOURCE, source);
-        message.reply(reply);
+      public void onResponse(GetResponse response) {
+        parseXContent(logger, response, message, false);
       }
     });
   }
@@ -160,9 +163,9 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
     if (type == null) {
       return;
     }
-    JsonObject source = body.getObject(SOURCE);
+    JsonObject source = body.getObject("source");
     if (source == null) {
-      replyFail(logger, message, SOURCE + " is required", null);
+      replyFail(logger, message, "source is required", null);
       return;
     }
 
@@ -186,11 +189,11 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
       }
 
       @Override
-      public void onResponse(IndexResponse indexResponse) {
+      public void onResponse(IndexResponse resp) {
         JsonObject reply =
-            new JsonObject().putString(INDEX, indexResponse.getIndex()).putString(TYPE,
-                indexResponse.getType()).putString(ID, indexResponse.getId()).putNumber(VERSION,
-                indexResponse.getVersion());
+            new JsonObject().putString(INDEX, resp.getIndex()).putString(TYPE, resp.getType())
+                .putString(ID, resp.getId()).putNumber(VERSION, resp.getVersion()).putBoolean(
+                    "created", resp.isCreated());
         message.reply(reply);
       }
     });
@@ -198,9 +201,9 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
 
   private void doScroll(final Message<JsonObject> message) {
     JsonObject body = message.body();
-    String scrollId = body.getString("_scroll_id");
+    String scrollId = body.getString("scroll_id");
     if (scrollId == null) {
-      replyFail(logger, message, "_scroll_id is required", null);
+      replyFail(logger, message, "scroll_id is required", null);
       return;
     }
     String scroll = body.getString("scroll");
@@ -217,8 +220,8 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
           }
 
           @Override
-          public void onResponse(SearchResponse searchResponse) {
-            handleActionResponse(logger, searchResponse, message);
+          public void onResponse(SearchResponse resp) {
+            parseXContent(logger, resp, message, true);
           }
         });
   }

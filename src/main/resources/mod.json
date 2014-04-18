@@ -1,8 +1,9 @@
 {
   "main": "com.goodow.realtime.search.server.SearchVerticle",
+  "preserve-cwd": true,
   "auto-redeploy": true,
   
-  "includes": "com.goodow.vertx~mod-guice~1.0.0-beta1",
+  "includes": "com.goodow.vertx~mod-guice~1.0.0-beta1, com.goodow.realtime~realtime-json~0.5.5-SNAPSHOT",
   
   "homepage": "https://github.com/goodow/realtime-search/"
 }

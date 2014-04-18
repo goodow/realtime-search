@@ -41,20 +41,17 @@ public class SearchActioin implements Handler<Message<JsonObject>> {
   @Override
   public void handle(final Message<JsonObject> message) {
     JsonObject body = message.body();
-    body.removeField("action");
     // Get indices to be searched
     String index = body.getString(ElasticSearchHandler.INDEX);
     JsonArray indices = body.getArray("_indices");
     List<String> list = new ArrayList<>();
     if (index != null) {
       list.add(index);
-      body.removeField(ElasticSearchHandler.INDEX);
     }
     if (indices != null) {
       for (Object idx : indices) {
         list.add((String) idx);
       }
-      body.removeField("_indices");
     }
     SearchRequestBuilder builder = client.prepareSearch(list.toArray(new String[list.size()]));
 
@@ -64,13 +61,11 @@ public class SearchActioin implements Handler<Message<JsonObject>> {
     list.clear();
     if (type != null) {
       list.add(type);
-      body.removeField(ElasticSearchHandler.TYPE);
     }
     if (types != null) {
       for (Object tp : types) {
         list.add((String) tp);
       }
-      body.removeField("_types");
     }
     if (!list.isEmpty()) {
       builder.setTypes(list.toArray(new String[list.size()]));
@@ -80,17 +75,16 @@ public class SearchActioin implements Handler<Message<JsonObject>> {
     String searchType = body.getString("search_type");
     if (searchType != null) {
       builder.setSearchType(searchType);
-      body.removeField("search_type");
     }
 
     // Set scroll keep alive time
     String scroll = body.getString("scroll");
     if (scroll != null) {
       builder.setScroll(scroll);
-      body.removeField("scroll");
     }
-
-    builder.setExtraSource(body.encode());
+    if (body.containsField("source")) {
+      builder.setExtraSource(body.getObject("source").encode());
+    }
     builder.execute(new ActionListener<SearchResponse>() {
       @Override
       public void onFailure(Throwable e) {
@@ -98,8 +92,8 @@ public class SearchActioin implements Handler<Message<JsonObject>> {
       }
 
       @Override
-      public void onResponse(SearchResponse searchResponse) {
-        ElasticSearchHandler.handleActionResponse(logger, searchResponse, message);
+      public void onResponse(SearchResponse resp) {
+        ElasticSearchHandler.parseXContent(logger, resp, message, true);
       }
     });
   }

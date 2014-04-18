@@ -27,15 +27,22 @@
   </repositories>
 
   <dependencies>
+    <!-- Internal modules -->
     <dependency>
-      <groupId>org.elasticsearch</groupId>
-      <artifactId>elasticsearch</artifactId>
+      <groupId>com.goodow.realtime</groupId>
+      <artifactId>realtime-json</artifactId>
+      <version>${project.version}</version>
     </dependency>
-      
+
     <!-- Guice -->
     <dependency>
       <groupId>com.goodow.vertx</groupId>
       <artifactId>mod-guice</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.elasticsearch</groupId>
+      <artifactId>elasticsearch</artifactId>
     </dependency>
 
     <!-- Test -->

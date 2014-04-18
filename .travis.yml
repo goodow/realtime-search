@@ -1,4 +1,7 @@
 language: java
+services:
+  - elasticsearch
+
 before_install: wget -P target/travis https://raw.githubusercontent.com/goodow/maven/master/settings.xml
 
 after_success: '[ ${TRAVIS_PULL_REQUEST} = ''false'' ]

@@ -13,6 +13,7 @@
  */
 package com.goodow.realtime.search.server;
 
+import com.goodow.realtime.search.server.impl.AdminActioin;
 import com.goodow.realtime.search.server.impl.ElasticSearchHandler;
 
 import com.alienos.guice.GuiceVerticleHelper;
@@ -22,12 +23,16 @@ import org.vertx.java.busmods.BusModBase;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.Future;
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.impl.CountingCompletionHandler;
+import org.vertx.java.core.impl.VertxInternal;
 
 import javax.inject.Inject;
 
 @GuiceVertxBinding(modules = {SearchModule.class})
 public class SearchVerticle extends BusModBase {
+  public static final String DEFAULT_ADDRESS = "realtime.search";
   @Inject ElasticSearchHandler searchHandler;
+  @Inject AdminActioin admin;
   private String address;
 
   @Override
@@ -35,14 +40,28 @@ public class SearchVerticle extends BusModBase {
     GuiceVerticleHelper.inject(this, vertx, container);
     super.start();
 
-    address = getOptionalStringConfig("address", "realtime.search");
+    final CountingCompletionHandler<Void> countDownLatch =
+        new CountingCompletionHandler<Void>((VertxInternal) vertx, 1);
+    countDownLatch.setHandler(new Handler<AsyncResult<Void>>() {
+      @Override
+      public void handle(AsyncResult<Void> ar) {
+        if (ar.failed()) {
+          startedResult.setFailure(ar.cause());
+        } else if (ar.succeeded()) {
+          startedResult.setResult(null);
+        }
+      }
+    });
+
+    address = getOptionalStringConfig("address", DEFAULT_ADDRESS);
     eb.registerHandler(address, searchHandler, new Handler<AsyncResult<Void>>() {
       @Override
       public void handle(AsyncResult<Void> ar) {
-        if (ar.succeeded()) {
-          startedResult.setResult(null);
+        if (ar.failed()) {
+          countDownLatch.failed(ar.cause());
         } else {
-          startedResult.setFailure(ar.cause());
+          admin.start(countDownLatch);
+          countDownLatch.complete();
         }
       }
     });

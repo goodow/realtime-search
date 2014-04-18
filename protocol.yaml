@@ -9,10 +9,17 @@ key: &key
 keyAndVersion: &keyAndVersion
   <<: *key
   _version: 1
-searchResult: &searchResult
-  <<: *key
-  _score: 0.19178301
-  _source: {}
+shards: &shards
+  total: 5
+  successful: 5
+  failed: 0
+hits: &hits
+  total: 2
+  max_score: 0.19178301
+  hits:
+  - <<: *key
+    _score: 0.19178301
+    _source: {}
 ...
 
 # http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/docs-index_.html
@@ -22,7 +29,7 @@ action: index
 version: 1
 version_type: external
 op_type: create
-_source:
+source:
   user: larry
   message: hello
 --- # reply
@@ -47,48 +54,54 @@ _index: twitter # optional
 _indices: [twitter] # optional
 _type: tweet # optional
 _types: [tweet] # optional
-from: 0
-size: 10
-query: {}
-filter: {}
-facets: {}
 search_type: query_then_fetch # optional
-scroll: 5m # optional
-sort: # http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-request-sort.html
+scroll: 5m # This is only required when search_type is scan
+source:
+  from: 0
+  size: 10
+  query: {}
+  filter: {}
+  facets: {}
+  sort: # http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-request-sort.html
   - user
   - {post_date: desc}
-  - _score
 --- # reply
 took: 2
 timed_out: false
-_shards:
-  total: 5
-  successful: 5
-  failed: 0
-hits:
-  total: 2
-  max_score: 0.19178301
-  hits:
-    - *searchResult
-    - *searchResult
+_shards: *shards
+hits: *hits
 
 # http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/search-request-scroll.html
 ---
 action: scroll
-_scroll_id: cXVlcnlUaGV
+scroll_id: cXVlcnlUaGV
 scroll: 5m
 --- # reply
 _scroll_id: m9kSGc7Mzk
 took: 2
 timed_out: false
-_shards:
-  total: 5
-  successful: 5
-  failed: 0
-hits:
-  total: 3
-  max_score: 1.0
-  hits:
-    - *searchResult
-    - *searchResult
-    - *searchResult
+_shards: *shards
+hits: *hits
+
+# http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-templates.html
+# http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-create-index.html
+# http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/analysis-analyzers.html
+---
+action: putIndexTemplate
+_name: template_name
+create: false
+source:
+  template: "*"
+  order: 0
+  settings:
+    number_of_shards: 3
+    number_of_replicas: 1
+    analysis:
+      analyzer:
+        default:
+          type: ik
+          use_smart: false
+  mappings: {}
+  aliases: {}
+--- # reply
+acknowledged: true
