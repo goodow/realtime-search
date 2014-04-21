@@ -34,7 +34,7 @@ import org.vertx.java.platform.Container;
 import javax.inject.Inject;
 
 public class AdminActioin implements Handler<Message<JsonObject>> {
-  private static final long REPLY_TIMEOUT = 500;
+  private static final long REPLY_TIMEOUT = 1000;
   private final Logger logger;
   @Inject private Client client;
   private final Vertx vertx;

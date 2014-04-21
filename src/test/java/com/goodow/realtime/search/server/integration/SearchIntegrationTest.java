@@ -17,11 +17,12 @@ import org.junit.Test;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.AsyncResultHandler;
 import org.vertx.java.core.eventbus.Message;
+import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.testtools.TestVerticle;
 import org.vertx.testtools.VertxAssert;
 
-public class IntegrationTest extends TestVerticle {
+public class SearchIntegrationTest extends TestVerticle {
   private final String id = "test_id";
   private final String index = "test_index";
   private final String type = "test_type";
@@ -31,7 +32,10 @@ public class IntegrationTest extends TestVerticle {
   @Override
   public void start() {
     initialize();
-    container.deployModule(System.getProperty("vertx.modulename"),
+    JsonObject config =
+        new JsonObject().putObject("elasticsearch", new JsonObject().putArray("transportAddresses",
+            new JsonArray().addObject(new JsonObject().putString("host", "127.0.0.1"))));
+    container.deployModule(System.getProperty("vertx.modulename"), config,
         new AsyncResultHandler<String>() {
           @Override
           public void handle(AsyncResult<String> asyncResult) {
@@ -59,7 +63,6 @@ public class IntegrationTest extends TestVerticle {
             VertxAssert.assertEquals(type, body.getString("_type"));
             VertxAssert.assertEquals(id, body.getString("_id"));
             VertxAssert.assertTrue(body.getLong("_version") > 0);
-            VertxAssert.assertTrue(body.getBoolean("created"));
             VertxAssert.testComplete();
           }
         });

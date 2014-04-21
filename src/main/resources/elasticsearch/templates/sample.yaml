@@ -5,15 +5,10 @@ template_1:
   settings:
     analysis:
       analyzer:
-        ik:
-          alias: [ik_analyzer]
-          type: org.elasticsearch.index.analysis.IkAnalyzerProvider
-        ik_max_word: 
+        ik_max_word:
           type: ik
+          alias: [ik]
           use_smart: false
         ik_smart:
           type: ik
           use_smart: true
-        default:
-          type: ik
-          use_smart: false

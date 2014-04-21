@@ -33,16 +33,19 @@
       <artifactId>realtime-json</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.goodow.vertx</groupId>
+      <artifactId>vertx-mod-elasticsearch</artifactId>
+    </dependency>
 
     <!-- Guice -->
     <dependency>
       <groupId>com.goodow.vertx</groupId>
       <artifactId>mod-guice</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.elasticsearch</groupId>
-      <artifactId>elasticsearch</artifactId>
     </dependency>
 
     <!-- Test -->
@@ -106,7 +109,7 @@
             <configuration>
               <outputDirectory>${vertx.mods.directory}/${vertx.module.name}/lib</outputDirectory>
               <includeScope>runtime</includeScope>
-              <excludeGroupIds>com.fasterxml.jackson.core</excludeGroupIds>
+              <excludeGroupIds>com.fasterxml.jackson.core,com.fasterxml.jackson.dataformat</excludeGroupIds>
               <excludeArtifactIds>realtime-json</excludeArtifactIds>
             </configuration>
           </execution>
