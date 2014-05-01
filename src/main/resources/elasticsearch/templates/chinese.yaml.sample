@@ -1,3 +1,4 @@
+# Rename this file to any.yaml for actual usage
 # http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/indices-templates.html
 template_1:
   template: "*"

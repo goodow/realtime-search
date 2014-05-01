@@ -17,7 +17,6 @@ import org.junit.Test;
 import org.vertx.java.core.AsyncResult;
 import org.vertx.java.core.AsyncResultHandler;
 import org.vertx.java.core.eventbus.Message;
-import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
 import org.vertx.testtools.TestVerticle;
 import org.vertx.testtools.VertxAssert;
@@ -32,10 +31,7 @@ public class SearchIntegrationTest extends TestVerticle {
   @Override
   public void start() {
     initialize();
-    JsonObject config =
-        new JsonObject().putObject("elasticsearch", new JsonObject().putArray("transportAddresses",
-            new JsonArray().addObject(new JsonObject().putString("host", "127.0.0.1"))));
-    container.deployModule(System.getProperty("vertx.modulename"), config,
+    container.deployModule(System.getProperty("vertx.modulename"),
         new AsyncResultHandler<String>() {
           @Override
           public void handle(AsyncResult<String> asyncResult) {
@@ -53,7 +49,7 @@ public class SearchIntegrationTest extends TestVerticle {
             type).putString("_id", id).putObject("source",
             new JsonObject().putString("user", source_user).putString("message", source_message));
 
-    vertx.eventBus().sendWithTimeout("realtime.search", message, 500,
+    vertx.eventBus().sendWithTimeout("realtime.search", message, 1500,
         new AsyncResultHandler<Message<JsonObject>>() {
           @Override
           public void handle(AsyncResult<Message<JsonObject>> ar) {
