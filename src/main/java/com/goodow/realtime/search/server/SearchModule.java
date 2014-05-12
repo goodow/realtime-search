@@ -49,7 +49,7 @@ public class SearchModule extends AbstractModule implements VertxModule {
   @Provides
   @Singleton
   Client provideElasticSearchClient() {
-    JsonObject config = container.config().getObject("elasticsearch", new JsonObject());
+    JsonObject config = container.config();
     Settings settings =
         ImmutableSettings.settingsBuilder().put("cluster.name",
             config.getString("cluster_name", "elasticsearch")).put("client.transport.sniff",

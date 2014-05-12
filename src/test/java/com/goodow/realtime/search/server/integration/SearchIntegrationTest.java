@@ -49,7 +49,7 @@ public class SearchIntegrationTest extends TestVerticle {
             type).putString("_id", id).putObject("source",
             new JsonObject().putString("user", source_user).putString("message", source_message));
 
-    vertx.eventBus().sendWithTimeout("realtime.search", message, 1500,
+    vertx.eventBus().sendWithTimeout("realtime.search", message, 2000,
         new AsyncResultHandler<Message<JsonObject>>() {
           @Override
           public void handle(AsyncResult<Message<JsonObject>> ar) {
