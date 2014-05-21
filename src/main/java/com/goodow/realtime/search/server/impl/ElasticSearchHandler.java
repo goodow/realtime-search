@@ -13,6 +13,8 @@
  */
 package com.goodow.realtime.search.server.impl;
 
+import com.google.inject.Provider;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
@@ -23,6 +25,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.VersionType;
+import org.elasticsearch.indices.IndexMissingException;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonObject;
@@ -64,7 +67,7 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
     }
   }
 
-  @Inject private Client client;
+  @Inject private Provider<Client> client;
   @Inject private SearchActioin search;
   @Inject private AdminActioin admin;
   private final Logger logger;
@@ -140,9 +143,13 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
       replyFail(logger, message, ID + " is required", null);
       return;
     }
-    client.prepareGet(index, type, id).execute(new ActionListener<GetResponse>() {
+    client.get().prepareGet(index, type, id).execute(new ActionListener<GetResponse>() {
       @Override
       public void onFailure(Throwable e) {
+        if (e.getCause() instanceof IndexMissingException) {
+          message.reply(new JsonObject().putBoolean("found", false));
+          return;
+        }
         replyFail(logger, message, "Get error: " + e.getMessage(), e);
       }
 
@@ -170,7 +177,7 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
     }
 
     IndexRequestBuilder builder =
-        client.prepareIndex(index, type, body.getString(ID)).setSource(source.encode());
+        client.get().prepareIndex(index, type, body.getString(ID)).setSource(source.encode());
 
     if (body.containsField("version")) {
       builder.setVersion(body.getLong("version"));
@@ -212,7 +219,7 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
       return;
     }
 
-    client.prepareSearchScroll(scrollId).setScroll(scroll).execute(
+    client.get().prepareSearchScroll(scrollId).setScroll(scroll).execute(
         new ActionListener<SearchResponse>() {
           @Override
           public void onFailure(Throwable e) {

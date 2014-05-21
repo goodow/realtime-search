@@ -31,15 +31,15 @@ public class SearchIntegrationTest extends TestVerticle {
   @Override
   public void start() {
     initialize();
-    container.deployModule(System.getProperty("vertx.modulename"),
-        new AsyncResultHandler<String>() {
-          @Override
-          public void handle(AsyncResult<String> asyncResult) {
-            VertxAssert.assertTrue(asyncResult.succeeded());
-            VertxAssert.assertNotNull("deploymentID should not be null", asyncResult.result());
-            startTests();
-          }
-        });
+    container.deployModule(System.getProperty("vertx.modulename"), new JsonObject().putBoolean(
+        "client_transport_sniff", false), new AsyncResultHandler<String>() {
+      @Override
+      public void handle(AsyncResult<String> asyncResult) {
+        VertxAssert.assertTrue(asyncResult.succeeded());
+        VertxAssert.assertNotNull("deploymentID should not be null", asyncResult.result());
+        startTests();
+      }
+    });
   }
 
   @Test
@@ -49,7 +49,7 @@ public class SearchIntegrationTest extends TestVerticle {
             type).putString("_id", id).putObject("source",
             new JsonObject().putString("user", source_user).putString("message", source_message));
 
-    vertx.eventBus().sendWithTimeout("realtime.search", message, 2000,
+    vertx.eventBus().sendWithTimeout("realtime.search", message, 5000,
         new AsyncResultHandler<Message<JsonObject>>() {
           @Override
           public void handle(AsyncResult<Message<JsonObject>> ar) {

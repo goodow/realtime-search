@@ -13,10 +13,13 @@
  */
 package com.goodow.realtime.search.server.impl;
 
+import com.google.inject.Provider;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.indices.IndexMissingException;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonArray;
@@ -31,7 +34,7 @@ import javax.inject.Inject;
 
 public class SearchActioin implements Handler<Message<JsonObject>> {
   private final Logger logger;
-  @Inject private Client client;
+  @Inject private Provider<Client> client;
 
   @Inject
   SearchActioin(Container container) {
@@ -53,7 +56,8 @@ public class SearchActioin implements Handler<Message<JsonObject>> {
         list.add((String) idx);
       }
     }
-    SearchRequestBuilder builder = client.prepareSearch(list.toArray(new String[list.size()]));
+    SearchRequestBuilder builder =
+        client.get().prepareSearch(list.toArray(new String[list.size()]));
 
     // Get types to be searched
     String type = body.getString(ElasticSearchHandler.TYPE);
@@ -88,6 +92,11 @@ public class SearchActioin implements Handler<Message<JsonObject>> {
     builder.execute(new ActionListener<SearchResponse>() {
       @Override
       public void onFailure(Throwable e) {
+        if (e.getCause() instanceof IndexMissingException) {
+          message.reply(new JsonObject().putObject("hits", new JsonObject().putNumber("total", 0)
+              .putArray("hits", new JsonArray())));
+          return;
+        }
         ElasticSearchHandler.replyFail(logger, message, "Search error: " + e.getMessage(), e);
       }
 

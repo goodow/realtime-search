@@ -18,6 +18,8 @@ import com.goodow.realtime.json.impl.JreJsonObject;
 import com.goodow.realtime.json.util.Yaml;
 import com.goodow.realtime.search.server.SearchVerticle;
 
+import com.google.inject.Provider;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.client.Client;
@@ -34,9 +36,9 @@ import org.vertx.java.platform.Container;
 import javax.inject.Inject;
 
 public class AdminActioin implements Handler<Message<JsonObject>> {
-  private static final long REPLY_TIMEOUT = 1000;
+  private static final long REPLY_TIMEOUT = 10000;
   private final Logger logger;
-  @Inject private Client client;
+  @Inject private Provider<Client> client;
   private final Vertx vertx;
   private final String address;
 
@@ -50,7 +52,7 @@ public class AdminActioin implements Handler<Message<JsonObject>> {
   @Override
   public void handle(final Message<JsonObject> message) {
     JsonObject body = message.body();
-    client.admin().indices().preparePutTemplate(body.getString("_name")).setCreate(
+    client.get().admin().indices().preparePutTemplate(body.getString("_name")).setCreate(
         body.getBoolean("create", false)).setSource(body.getObject("source").encode()).execute(
         new ActionListener<PutIndexTemplateResponse>() {
           @Override
@@ -90,11 +92,13 @@ public class AdminActioin implements Handler<Message<JsonObject>> {
                               new JsonObject().putString("action",
                                   ElasticSearchHandler.PUT_INDEX_TEMPLATE).putString("_name", name)
                                   .putObject("source", new JsonObject(template.toNative()));
+                          client.get();
                           vertx.eventBus().sendWithTimeout(address, message, REPLY_TIMEOUT,
                               new Handler<AsyncResult<Message<JsonObject>>>() {
                                 @Override
                                 public void handle(AsyncResult<Message<JsonObject>> ar) {
                                   if (ar.failed()) {
+                                    logger.error("Put index template failed", ar.cause());
                                     countDownLatch.failed(ar.cause());
                                   } else {
                                     countDownLatch.complete();
