@@ -188,6 +188,9 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
     if (body.containsField("op_type")) {
       builder.setOpType(body.getString("op_type"));
     }
+    if (body.containsField("refresh")) {
+      builder.setRefresh(body.getBoolean("refresh"));
+    }
 
     builder.execute(new ActionListener<IndexResponse>() {
       @Override
