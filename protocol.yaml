@@ -1,4 +1,4 @@
-# address: realtime.search
+# default address: realtime/search
 
 # Define anchors to be referenced below
 ---
@@ -29,7 +29,7 @@ action: index
 version: 1
 version_type: external
 op_type: create
-refresh: true
+refresh: false
 source:
   user: larry
   message: hello

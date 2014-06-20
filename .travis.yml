@@ -1,4 +1,5 @@
 language: java
+jdk: oraclejdk8
 
 before_install:
 - wget -P target/travis https://raw.githubusercontent.com/goodow/maven/master/settings.xml

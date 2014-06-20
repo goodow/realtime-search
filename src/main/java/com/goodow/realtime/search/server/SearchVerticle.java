@@ -30,7 +30,7 @@ import javax.inject.Inject;
 
 @GuiceVertxBinding(modules = {SearchModule.class})
 public class SearchVerticle extends BusModBase {
-  public static final String DEFAULT_ADDRESS = "realtime.search";
+  public static final String DEFAULT_ADDRESS = "realtime/search";
   @Inject ElasticSearchHandler searchHandler;
   @Inject AdminActioin admin;
   private String address;

@@ -49,17 +49,12 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
     message.fail(-1, error);
   }
 
-  static void parseXContent(Logger logger, ToXContent toXContent, Message<JsonObject> message,
-      boolean needWrap) {
+  static void parseXContent(Logger logger, ToXContent toXContent, Message<JsonObject> message) {
     try {
       XContentBuilder builder = XContentFactory.jsonBuilder();
-      if (needWrap) {
-        builder.startObject();
-      }
+      builder.startObject();
       toXContent.toXContent(builder, SearchResponse.EMPTY_PARAMS);
-      if (needWrap) {
-        builder.endObject();
-      }
+      builder.endObject();
       JsonObject response = new JsonObject(builder.string());
       message.reply(response);
     } catch (IOException e) {
@@ -155,7 +150,7 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
 
       @Override
       public void onResponse(GetResponse response) {
-        parseXContent(logger, response, message, false);
+        parseXContent(logger, response, message);
       }
     });
   }
@@ -231,7 +226,7 @@ public class ElasticSearchHandler implements Handler<Message<JsonObject>> {
 
           @Override
           public void onResponse(SearchResponse resp) {
-            parseXContent(logger, resp, message, true);
+            parseXContent(logger, resp, message);
           }
         });
   }

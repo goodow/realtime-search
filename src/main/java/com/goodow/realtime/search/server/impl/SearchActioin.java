@@ -102,7 +102,7 @@ public class SearchActioin implements Handler<Message<JsonObject>> {
 
       @Override
       public void onResponse(SearchResponse resp) {
-        ElasticSearchHandler.parseXContent(logger, resp, message, true);
+        ElasticSearchHandler.parseXContent(logger, resp, message);
       }
     });
   }
