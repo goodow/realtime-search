@@ -45,7 +45,7 @@
     <!-- Guice -->
     <dependency>
       <groupId>com.goodow.vertx</groupId>
-      <artifactId>mod-guice</artifactId>
+      <artifactId>vertx-mod-guice</artifactId>
     </dependency>
 
     <!-- Test -->
